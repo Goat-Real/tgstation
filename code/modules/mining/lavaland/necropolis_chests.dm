@@ -123,8 +123,8 @@
 	icon_state = "necro_bubblegum"
 	base_icon_state = "necro_bubblegum"
 	lid_icon_state = "necro_bubblegum_lid"
-	lid_x = -26
-	lid_y = 2
+	lid_w = -26
+	lid_z = 2
 
 /obj/structure/closet/crate/necropolis/bubblegum/PopulateContents()
 	new /obj/item/clothing/suit/hooded/hostile_environment(src)
@@ -145,8 +145,8 @@
 /obj/structure/closet/crate/necropolis/colossus
 	name = "colossus chest"
 
-/obj/structure/closet/crate/necropolis/colossus/bullet_act(obj/projectile/P)
-	if(istype(P, /obj/projectile/colossus))
+/obj/structure/closet/crate/necropolis/colossus/bullet_act(obj/projectile/proj)
+	if(istype(proj, /obj/projectile/colossus))
 		return BULLET_ACT_FORCE_PIERCE
 	return ..()
 

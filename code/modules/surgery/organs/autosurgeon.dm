@@ -8,7 +8,7 @@
 	w_class = WEIGHT_CLASS_SMALL
 
 	/// How many times you can use the autosurgeon before it becomes useless
-	var/uses = INFINITE
+	var/uses = INFINITY
 	/// What organ will the autosurgeon sub-type will start with. ie, CMO autosurgeon start with a medi-hud.
 	var/starting_organ
 	/// The organ currently loaded in the autosurgeon, ready to be implanted.
@@ -40,7 +40,7 @@
 			to_chat(user, span_alert("[src] already has an implant stored."))
 			return
 
-		if(uses == 0)
+		if(uses <= 0)
 			to_chat(user, span_alert("[src] is used up and cannot be loaded with more implants."))
 			return
 
@@ -69,14 +69,14 @@
 		to_chat(user, span_alert("[src] currently has no implant stored."))
 		return
 
-	if(!uses)
+	if(uses <= 0)
 		to_chat(user, span_alert("[src] has already been used. The tools are dull and won't reactivate."))
 		return
 
 	if(implant_time)
 		user.visible_message(
 			span_notice("[user] prepares to use [src] on [target]."),
-			span_notice("You begin to prepare to use [src] on [target]."),
+			span_notice("You prepare to use [src] on [target]."),
 		)
 		if(!do_after(user, (implant_time * surgery_speed), target))
 			return
@@ -86,19 +86,33 @@
 		user.visible_message(span_notice("[user] presses a button on [src] as it plunges into [target]'s body."), span_notice("You press a button on [src] as it plunges into [target]'s body."))
 	else
 		user.visible_message(
-			span_notice("[user] pressses a button on [src] as it plunges into [user.p_their()] body."),
+			span_notice("[user] presses a button on [src] as it plunges into [user.p_their()] body."),
 			span_notice("You press a button on [src] as it plunges into your body."),
 		)
 
-	stored_organ.Insert(target)//insert stored organ into the user
+	if (stored_organ.valid_zones && user.get_held_index_of_item(src))
+		var/list/checked_zones = list(user.zone_selected)
+		if (IS_RIGHT_INDEX(user.get_held_index_of_item(src)))
+			checked_zones += list(BODY_ZONE_R_ARM, BODY_ZONE_R_LEG)
+		else
+			checked_zones += list(BODY_ZONE_L_ARM, BODY_ZONE_L_LEG)
+
+		for (var/check_zone in checked_zones)
+			if (stored_organ.valid_zones[check_zone])
+				stored_organ.swap_zone(check_zone)
+				break
+
+	if (!stored_organ.Insert(target)) // insert stored organ into the user
+		balloon_alert(user, "insertion failed!")
+		return
+
 	stored_organ = null
 	name = initial(name) //get rid of the organ in the name
 	playsound(target.loc, 'sound/items/weapons/circsawhit.ogg', 50, vary = TRUE)
 	update_appearance()
 
-	if(uses)
-		uses--
-	if(uses == 0)
+	uses--
+	if(uses <= 0)
 		desc = "[initial(desc)] Looks like it's been used up."
 
 /obj/item/autosurgeon/attack_self(mob/user)//when the object it used...
@@ -129,9 +143,8 @@
 			stored_organ = null
 
 		screwtool.play_tool_sound(src)
-		if (uses)
-			uses--
-		if(!uses)
+		uses--
+		if(uses <= 0)
 			desc = "[initial(desc)] Looks like it's been used up."
 		update_appearance(UPDATE_ICON)
 	return TRUE
